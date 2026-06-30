@@ -104,10 +104,14 @@ the central claim is proven before UI/polish work begins.
 - **Models:** Qwen via DashScope (Alibaba Cloud), OpenAI-compatible endpoint
   `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`. Strong model
   (e.g., qwen-max / qwen3) for advocates + mediator; smaller for intake.
-- **Fairness Engine:** pure Python + numpy, deterministic, unit-tested.
+- **Fairness Engine:** pure Python + numpy, deterministic, unit-tested. Also exposed as an
+  **MCP server** (`arbiter-fairness-mcp`) so agents consume it over the MCP protocol.
 - **Backend:** FastAPI; `/negotiate` endpoint streams the debate via SSE so the UI is live.
-- **Frontend:** Next.js + React negotiation-table UI.
-- **Persistence:** SQLite (MVP) storing sessions + transcripts.
+  Acts as an **MCP client** to the fairness server.
+- **Frontend:** Next.js (App Router) + TypeScript + Tailwind + shadcn/ui, with a deliberate
+  visual design (custom palette/typography, motion via Framer Motion for the live negotiation
+  table). Built with the `frontend-design` skill so it looks intentional, not templated.
+- **Persistence:** SQLite (MVP) storing sessions + transcripts. Upgrade path to Alibaba Cloud RDS.
 - **Deployment:** Alibaba Cloud ECS runs the FastAPI backend, which calls DashScope
   (Qwen) — natively satisfying "backend running on Alibaba Cloud" + "use of Alibaba
   Cloud services/APIs." Optional: Alibaba Cloud RDS/OSS to strengthen the proof.
@@ -115,6 +119,40 @@ the central claim is proven before UI/polish work begins.
 **Data flow:** UI → FastAPI `/negotiate` → LangGraph graph (Intake → Advocates ↔
 Mediator loop, querying Fairness Engine → Referee) → streamed events back to UI →
 final Settlement Agreement persisted to SQLite.
+
+## 7a. Sophisticated Qwen Cloud API usage (Technical Depth, 30%)
+
+This section directly answers the rubric: *"Does the project make sophisticated use of
+Qwen Cloud APIs (e.g., custom skills, MCP integrations)? Does it demonstrate
+algorithmic or engineering innovation?"*
+
+- **MCP integration (headline):** the Fairness Engine is exposed as a standalone
+  **MCP server** (`arbiter-fairness-mcp`) advertising tools like `evaluate_allocation`,
+  `check_envy_free`, `nash_welfare`, `suggest_pareto_improvement`. The agent layer connects
+  as an **MCP client**, so advocates/mediator invoke fairness math through the open MCP
+  protocol — not hard-wired calls. This makes the engine reusable by any MCP-capable host
+  (Claude, Qwen, IDEs) and is a clean, demonstrable "MCP integration." The same engine
+  remains importable as a plain Python module (tested core + MCP surface = robust fallback).
+- **Qwen function calling / tool use:** advocates and mediator are tool-using agents. Every
+  proposal is validated by a tool round-trip ("if I trade the car for $8k, is it still
+  envy-free?"). We measure **tool-call accuracy** as an engineering metric.
+- **Structured outputs (JSON schema):** intake parsing and every proposal/counter use Qwen's
+  JSON/structured-output mode against strict schemas, so the negotiation state is always
+  machine-valid (no brittle regex parsing of free text).
+- **Multimodal intake via `qwen-vl` (stretch, high-impact):** upload a term sheet, cap table,
+  or a photo of an asset list; `qwen-vl-max` extracts the structured assets/valuations. Shows
+  Qwen's multimodal capability and removes manual data entry in the demo.
+- **Deliberate model routing (performance optimization):** `qwen-max`/`qwen3` for the
+  mediator + referee (hardest reasoning), `qwen-plus` for advocates, `qwen-turbo` for intake.
+  We log tokens + latency + cost per role to show thoughtful, cost-aware adoption.
+- **Context caching:** the shared, static negotiation rules/system context is sent once and
+  cached across the many advocate/mediator turns, cutting tokens and latency per round.
+- **Streaming:** token streaming powers the live negotiation-table UI.
+
+**Algorithmic innovation:** the Fairness Engine implements real fair-division algorithms
+(envy-freeness checks, Nash-welfare maximization, adjusted-winner / sequential-allocation
+seeding) and couples them to LLM negotiation — a genuinely novel hybrid of classical
+mechanism design and agentic dialogue.
 
 ## 8. Scope (YAGNI-guarded)
 

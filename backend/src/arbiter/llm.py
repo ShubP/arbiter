@@ -47,3 +47,21 @@ def get_client(api_key: str | None = None) -> OpenAI:
 def model_for(role: str) -> str:
     """The Qwen model chosen for a given agent role."""
     return MODELS.get(role, "qwen-plus")
+
+
+def make_generate(client: OpenAI):
+    """Build a token-frugal ``(system, user, model) -> text`` generator on Qwen."""
+
+    def generate(system: str, user: str, model: str) -> str:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.7,
+            max_tokens=160,
+        )
+        return (response.choices[0].message.content or "").strip()
+
+    return generate

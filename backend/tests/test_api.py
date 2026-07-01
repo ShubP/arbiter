@@ -78,3 +78,18 @@ def test_negotiate_post_rejects_an_invalid_dispute():
     payload = {"dispute": {"parties": [{"id": "a", "name": "Solo"}], "items": []}}
     response = client.post("/negotiate", json=payload)
     assert response.status_code == 422
+
+
+def test_capabilities_reports_live_qwen_flag():
+    response = client.get("/capabilities")
+    assert response.status_code == 200
+    assert "liveQwen" in response.json()
+
+
+def test_live_flag_without_a_key_falls_back_and_still_settles(monkeypatch):
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+    response = client.post("/negotiate", json={"live": True, "delay": 0})
+    assert response.status_code == 200
+    events = _sse_events(response.text)
+    assert events[-1]["type"] == "settlement"
+    assert events[-1]["report"]["certifiedFair"] is True

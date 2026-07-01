@@ -58,7 +58,7 @@ export function SiteNav() {
           </a>
           <Link
             href="/demo"
-            className="rounded-full bg-brass px-4 py-1.5 text-sm font-semibold text-ink transition hover:bg-brass-bright"
+            className="btn-lift rounded-full bg-brass px-4 py-1.5 text-sm font-semibold text-ink transition hover:bg-brass-bright"
           >
             Convene
           </Link>

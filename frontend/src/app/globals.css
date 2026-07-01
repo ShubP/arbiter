@@ -55,13 +55,61 @@ body {
   color: #2a2418;
 }
 
-/* Fine chamber grid, sits behind the stage. */
+/* Fine chamber grid, sits behind the stage; drifts almost imperceptibly. */
 .chamber-grid {
   background-image:
     linear-gradient(var(--color-ink-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-ink-line) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 30%, transparent 75%);
+  animation: grid-drift 60s linear infinite;
+}
+
+@keyframes grid-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 48px 48px;
+  }
+}
+
+/* Buttons rise a hair and cast brass light on hover; press settles them back. */
+.btn-lift {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+.btn-lift:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 24px -10px rgb(201 162 75 / 0.55);
+}
+.btn-lift:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Cards lift slightly and warm their border on hover. */
+.card-lift {
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  border-color: rgb(201 162 75 / 0.45);
+  box-shadow: 0 10px 32px -18px rgb(0 0 0 / 0.7);
+}
+
+/* Keyboard focus is always visible, in brass. */
+:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -20,32 +20,53 @@ function Seal({ certified }: { certified: boolean }) {
   const c = certified ? "#c9a24b" : "#9a8f70";
   return (
     <div className="relative grid h-20 w-20 shrink-0 place-items-center">
-      <div
-        className="absolute inset-0 rounded-full border-2"
+      {/* The stamp: drops in from above the paper, lands with a settle. */}
+      <motion.div
+        initial={{ scale: 2, opacity: 0, rotate: -18 }}
+        animate={{ scale: 1, opacity: 1, rotate: -8 }}
+        transition={{
+          delay: 0.85,
+          type: "spring",
+          stiffness: 420,
+          damping: 24,
+        }}
+        className="relative grid h-20 w-20 place-items-center"
+      >
+        <div
+          className="absolute inset-0 rounded-full border-2"
+          style={{ borderColor: c }}
+        />
+        <div
+          className="absolute inset-1.5 rounded-full border"
+          style={{ borderColor: `${c}88` }}
+        />
+        <span
+          className="text-center font-sans text-[9px] font-semibold uppercase leading-tight tracking-widest"
+          style={{ color: c }}
+        >
+          {certified ? (
+            <>
+              Certified
+              <br />
+              fair
+            </>
+          ) : (
+            <>
+              Best
+              <br />
+              effort
+            </>
+          )}
+        </span>
+      </motion.div>
+      {/* Impact ring: a single pulse where the stamp lands. */}
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0.7 }}
+        animate={{ scale: 1.7, opacity: 0 }}
+        transition={{ delay: 0.95, duration: 0.6, ease: "easeOut" }}
+        className="pointer-events-none absolute inset-0 rounded-full border-2"
         style={{ borderColor: c }}
       />
-      <div
-        className="absolute inset-1.5 rounded-full border"
-        style={{ borderColor: `${c}88` }}
-      />
-      <span
-        className="text-center font-sans text-[9px] font-semibold uppercase leading-tight tracking-widest"
-        style={{ color: c }}
-      >
-        {certified ? (
-          <>
-            Certified
-            <br />
-            fair
-          </>
-        ) : (
-          <>
-            Best
-            <br />
-            effort
-          </>
-        )}
-      </span>
     </div>
   );
 }
@@ -127,9 +148,12 @@ export function SettlementCertificate({
       </div>
 
       <div className="my-6 grid gap-5 sm:grid-cols-2">
-        {parties.map((party) => (
-          <div
+        {parties.map((party, i) => (
+          <motion.div
             key={party.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 + i * 0.15, duration: 0.45 }}
             className="rounded-lg border border-[#c9bfa4] bg-[#f6f1e4] p-4"
           >
             <div className="flex items-center justify-between">
@@ -152,7 +176,7 @@ export function SettlementCertificate({
             <p className="mt-3 border-t border-[#d8cfb5] pt-3 text-xs leading-relaxed text-[#5a5138]">
               {rationale[party.id]}
             </p>
-          </div>
+          </motion.div>
         ))}
       </div>
 

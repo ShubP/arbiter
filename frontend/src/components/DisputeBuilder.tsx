@@ -192,7 +192,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           {presets?.map((preset) => (
             <div
               key={preset.id}
-              className="flex flex-col gap-3 rounded-xl border border-ink-line bg-ink/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="card-lift flex flex-col gap-3 rounded-xl border border-ink-line bg-ink/40 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
                 <p className="font-display text-lg text-parchment">{preset.title}</p>
@@ -212,7 +212,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                   type="button"
                   disabled={running}
                   onClick={() => onRun(preset, live)}
-                  className="rounded-full bg-brass px-4 py-1.5 text-sm font-semibold text-ink transition hover:bg-brass-bright disabled:opacity-60"
+                  className="btn-lift rounded-full bg-brass px-4 py-1.5 text-sm font-semibold text-ink transition hover:bg-brass-bright disabled:opacity-60"
                 >
                   Convene
                 </button>
@@ -249,7 +249,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
             type="button"
             disabled={describing || !describeText.trim()}
             onClick={structure}
-            className="rounded-full bg-brass px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:opacity-60"
+            className="btn-lift rounded-full bg-brass px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:opacity-60"
           >
             {describing ? "Structuring…" : "Structure with Qwen"}
           </button>
@@ -430,7 +430,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
               type="button"
               disabled={running}
               onClick={submit}
-              className="rounded-full bg-brass px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:opacity-60"
+              className="btn-lift rounded-full bg-brass px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:opacity-60"
             >
               {running ? "Negotiating…" : "Convene the table"}
             </button>

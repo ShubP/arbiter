@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchCapabilities, fetchPresets } from "@/lib/api";
+import {
+  fetchCapabilities,
+  fetchPresets,
+  structureDispute,
+} from "@/lib/api";
 import type { DisputePayload } from "@/lib/negotiation";
 import { partyColor } from "@/lib/palette";
 
@@ -32,13 +36,16 @@ interface DisputeBuilderProps {
 }
 
 export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
-  const [tab, setTab] = useState<"presets" | "custom">("presets");
+  const [tab, setTab] = useState<"presets" | "custom" | "describe">("presets");
   const [presets, setPresets] = useState<DisputePayload[] | null>(null);
   const [presetsError, setPresetsError] = useState(false);
   const [form, setForm] = useState<FormState>(BLANK);
   const [formError, setFormError] = useState<string | null>(null);
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [live, setLive] = useState(false);
+  const [describeText, setDescribeText] = useState("");
+  const [describing, setDescribing] = useState(false);
+  const [describeError, setDescribeError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPresets()
@@ -69,6 +76,20 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
     });
     setFormError(null);
     setTab("custom");
+  };
+
+  const structure = async () => {
+    if (!describeText.trim()) return;
+    setDescribing(true);
+    setDescribeError(null);
+    try {
+      const payload = await structureDispute(describeText.trim());
+      loadPreset(payload); // fills the form and switches to the custom tab
+    } catch (e) {
+      setDescribeError((e as Error).message);
+    } finally {
+      setDescribing(false);
+    }
   };
 
   const addParty = () => {
@@ -139,16 +160,23 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
   return (
     <div className="rounded-2xl border border-ink-line bg-ink-raised/30 p-5 sm:p-6">
       <div className="mb-5 flex gap-1 rounded-full border border-ink-line bg-ink/50 p-1 text-sm">
-        {(["presets", "custom"] as const).map((t) => (
+        {(liveAvailable
+          ? (["presets", "custom", "describe"] as const)
+          : (["presets", "custom"] as const)
+        ).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-full px-4 py-1.5 font-medium transition ${
+            className={`flex-1 rounded-full px-3 py-1.5 font-medium transition ${
               tab === t ? "bg-brass text-ink" : "text-parchment/60 hover:text-parchment"
             }`}
           >
-            {t === "presets" ? "Pick a preset" : "Build your own"}
+            {t === "presets"
+              ? "Pick a preset"
+              : t === "custom"
+                ? "Build your own"
+                : "Describe it"}
           </button>
         ))}
       </div>
@@ -202,6 +230,32 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           >
             Or run the flagship demo →
           </button>
+        </div>
+      ) : tab === "describe" ? (
+        <div className="space-y-4">
+          <p className="text-sm text-parchment/60">
+            Describe the dispute in plain English — who&rsquo;s involved, what
+            they&rsquo;re dividing, and what each side cares about. A Qwen intake
+            agent turns it into a structured dispute you can review.
+          </p>
+          <textarea
+            value={describeText}
+            onChange={(e) => setDescribeText(e.target.value)}
+            rows={6}
+            placeholder="e.g. My sister and I are splitting our late dad's estate: the house, his car, and about $50k in savings. I care most about the house; she really wants the car…"
+            className="w-full resize-none rounded-lg border border-ink-line bg-ink/50 px-3 py-2 text-sm text-parchment placeholder:text-parchment/30 focus:border-brass/60 focus:outline-none"
+          />
+          <button
+            type="button"
+            disabled={describing || !describeText.trim()}
+            onClick={structure}
+            className="rounded-full bg-brass px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:opacity-60"
+          >
+            {describing ? "Structuring…" : "Structure with Qwen"}
+          </button>
+          {describeError && (
+            <p className="text-sm text-tension">{describeError}</p>
+          )}
         </div>
       ) : (
         <div className="space-y-5">

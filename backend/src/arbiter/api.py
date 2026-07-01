@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from .intake import structure_dispute
 from .llm import get_client, make_generate
 from .narration import LLMNarrator, Narrator, TemplateNarrator
 from .protocol import run_negotiation
@@ -68,6 +69,25 @@ def _live_qwen_available() -> bool:
 def capabilities() -> dict[str, bool]:
     """Tell the client which optional features are available on this deployment."""
     return {"liveQwen": _live_qwen_available()}
+
+
+class IntakeRequest(BaseModel):
+    text: str
+
+
+@app.post("/intake")
+def intake(request: IntakeRequest) -> dict[str, Any]:
+    """Structure a plain-English dispute into a builder payload (needs Qwen)."""
+    if not _live_qwen_available():
+        raise HTTPException(
+            status_code=503, detail="Natural-language intake needs a Qwen key."
+        )
+    try:
+        payload = structure_dispute(request.text, make_generate(get_client()))
+        scenario_from_payload(payload)  # validate it's runnable
+    except (ValueError, InvalidDispute) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return payload
 
 
 def _narrator(live: bool) -> Narrator:

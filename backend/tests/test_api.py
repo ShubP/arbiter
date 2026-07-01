@@ -86,6 +86,12 @@ def test_capabilities_reports_live_qwen_flag():
     assert "liveQwen" in response.json()
 
 
+def test_intake_without_a_key_is_unavailable(monkeypatch):
+    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
+    response = client.post("/intake", json={"text": "Ada and Bo split a car"})
+    assert response.status_code == 503
+
+
 def test_live_flag_without_a_key_falls_back_and_still_settles(monkeypatch):
     monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
     response = client.post("/negotiate", json={"live": True, "delay": 0})

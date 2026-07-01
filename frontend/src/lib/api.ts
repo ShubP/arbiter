@@ -8,6 +8,20 @@ export async function fetchPresets(): Promise<DisputePayload[]> {
   return res.json();
 }
 
+/** Turn a plain-English description into a structured dispute (needs Qwen). */
+export async function structureDispute(text: string): Promise<DisputePayload> {
+  const res = await fetch(`${API_BASE}/intake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail ?? "Couldn't structure that description.");
+  }
+  return res.json();
+}
+
 /** Whether this deployment can voice advocates with live Qwen. */
 export async function fetchCapabilities(): Promise<{ liveQwen: boolean }> {
   try {

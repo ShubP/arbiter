@@ -8,21 +8,21 @@ export const metadata: Metadata = {
 };
 
 const STACK = [
-  ["Negotiation", "Qwen (DashScope) advocates, mediator, referee"],
-  ["Coordination", "LangGraph orchestration behind an SSE event contract"],
+  ["Negotiation", "Emergent engine-refereed protocol: advocates demand, the mediator adjudicates"],
+  ["Agents", "Qwen (DashScope) voices advocates, mediator and intake, with per-role model routing"],
   ["Fairness", "Deterministic engine (envy-free · Nash · Pareto), exposed over MCP"],
   ["Backend", "FastAPI · Server-Sent Events · deployed on Alibaba Cloud ECS"],
   ["Frontend", "Next.js · Tailwind · Framer Motion"],
-  ["Quality", "pytest + ruff; test-driven fairness engine"],
+  ["Quality", "pytest + ruff; 78 tests; test-driven fairness engine"],
 ];
 
 const ROADMAP = [
-  ["Done", "Fairness engine, solver, benchmark, MCP server"],
-  ["Done", "FastAPI SSE backend + engine-driven negotiation director"],
-  ["Done", "Multi-page site with the live negotiation table"],
-  ["Next", "Qwen agent society + natural-language intake"],
-  ["Next", "Custom-dispute builder and preset gallery"],
-  ["Next", "Alibaba Cloud deployment + measured single-agent baseline"],
+  ["Done", "Fairness engine, solver, 200-dispute benchmark, MCP server"],
+  ["Done", "Emergent multi-party negotiation (2–6 advocates) with human red-lines"],
+  ["Done", "Preset gallery, custom builder, plain-English intake (Qwen)"],
+  ["Done", "Live negotiation table with certified, downloadable settlements"],
+  ["Next", "Alibaba Cloud ECS deployment + live Qwen advocates in production"],
+  ["Next", "Divisible assets, mediation memory, richer negotiation strategies"],
 ];
 
 export default function AboutPage() {

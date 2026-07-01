@@ -47,11 +47,14 @@ its fairness certificate. Falls back to a built-in demo stream if the backend is
 offline.
 
 **Backend — `backend/src/arbiter/api.py`**
-FastAPI streams the negotiation as Server-Sent Events. The **event source is
-pluggable** behind one contract:
-- **Deterministic Director** (`director.py`) — engine-driven, no LLM. Runs today.
-- **Agent Society** (Qwen) — advocates with private valuations negotiate, a
-  mediator steers, a referee certifies. Slots in behind the same event contract.
+FastAPI streams the negotiation as Server-Sent Events. The negotiation itself is an
+**emergent, engine-refereed protocol** (`protocol.py`): advocates open with claims,
+then demand the assets they value most; the mediator adjudicates each demand with
+the fairness engine (grant efficient trades, deny + cash-compensate inefficient
+grabs), honoring any human red-lines. The **voice is pluggable** behind one
+contract (`narration.py`): a free deterministic narrator, or **Qwen advocates**
+(via DashScope) that argue each move in generated language — with automatic
+fallback, so the product runs fully without a single LLM call.
 
 **Fairness Engine — `backend/src/arbiter/fairness.py` + `solver.py`**
 Pure, deterministic, unit-tested fair-division math. It is the source of truth

@@ -2,7 +2,7 @@
 
 import pytest
 
-from arbiter.director import run_negotiation
+from arbiter.protocol import run_negotiation
 from arbiter.scenarios import (
     PRESETS,
     InvalidDispute,

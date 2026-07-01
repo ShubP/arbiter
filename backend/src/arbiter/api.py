@@ -19,9 +19,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from .director import run_negotiation
 from .llm import get_client, make_generate
 from .narration import LLMNarrator, Narrator, TemplateNarrator
+from .protocol import run_negotiation
 from .scenarios import (
     COFOUNDER_SCENARIO,
     PRESETS,
@@ -80,9 +80,7 @@ def _narrator(live: bool) -> Narrator:
     return TemplateNarrator()
 
 
-def _stream(
-    scenario: Scenario, delay: float, narrator: Narrator
-) -> StreamingResponse:
+def _stream(scenario: Scenario, delay: float, narrator: Narrator) -> StreamingResponse:
     async def event_stream() -> AsyncIterator[str]:
         for event in run_negotiation(scenario, narrator):
             yield f"data: {json.dumps(event)}\n\n"

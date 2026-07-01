@@ -5,8 +5,8 @@ function. The point: swapping in the LLM narrator changes the *wording* but neve
 the fairness of the outcome (the settlement stays certified).
 """
 
-from arbiter.director import run_negotiation
 from arbiter.narration import LLMNarrator, TemplateNarrator
+from arbiter.protocol import run_negotiation
 from arbiter.scenarios import COFOUNDER_SCENARIO
 
 

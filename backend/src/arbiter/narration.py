@@ -44,6 +44,12 @@ class Narrator(Protocol):
     def opening(
         self, scenario: Scenario, party_id: str, report: dict[str, Any]
     ) -> str: ...
+    def demand(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str: ...
+    def deny(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str: ...
     def mediation_opening(self, scenario: Scenario, contested: list[str]) -> str: ...
     def counter(
         self, scenario: Scenario, party_id: str, report: dict[str, Any]
@@ -78,8 +84,26 @@ class TemplateNarrator:
 
     def opening(self, scenario: Scenario, party_id: str, report: dict[str, Any]) -> str:
         return (
-            f"{_name(scenario, party_id)} opens by claiming every asset, offering "
-            f"{_name(scenario, _other(scenario, party_id))} only a cash buyout."
+            f"{_name(scenario, party_id)} opens aggressively, claiming every asset "
+            "for their side."
+        )
+
+    def demand(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str:
+        return (
+            f"{_name(scenario, party_id)} pushes for "
+            f"{scenario.item_labels[item_id]}, currently held by "
+            f"{_name(scenario, holder_id)}."
+        )
+
+    def deny(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str:
+        return (
+            f"{_name(scenario, holder_id)} values {scenario.item_labels[item_id]} "
+            f"more than {_name(scenario, party_id)}, so it stays put — "
+            f"{_name(scenario, party_id)} is balanced in cash instead."
         )
 
     def mediation_opening(self, scenario: Scenario, contested: list[str]) -> str:
@@ -154,6 +178,30 @@ class LLMNarrator:
 
     def intake(self, scenario: Scenario) -> str:
         return self._fallback.intake(scenario)
+
+    def demand(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str:
+        system = (
+            "You are a sharp advocate. In one first-person sentence, demand a "
+            "specific asset you value, currently held by another party. No preamble."
+        )
+        user = (
+            f"You represent {_name(scenario, party_id)}. Demand "
+            f"{scenario.item_labels[item_id]}, currently held by "
+            f"{_name(scenario, holder_id)}."
+        )
+        return self._gen(
+            system,
+            user,
+            "advocate",
+            self._fallback.demand(scenario, party_id, item_id, holder_id),
+        )
+
+    def deny(
+        self, scenario: Scenario, party_id: str, item_id: str, holder_id: str
+    ) -> str:
+        return self._fallback.deny(scenario, party_id, item_id, holder_id)
 
     def opening(self, scenario: Scenario, party_id: str, report: dict[str, Any]) -> str:
         system = (

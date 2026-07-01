@@ -15,15 +15,21 @@ import os
 from openai import OpenAI
 
 # Alibaba Cloud DashScope, OpenAI-compatible mode (international endpoint).
-DASHSCOPE_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+# Override with DASHSCOPE_BASE_URL (e.g. for Token Plan keys, which use
+# token-plan.ap-southeast-1.maas.aliyuncs.com — see the hackathon quickstart).
+DASHSCOPE_BASE_URL = os.environ.get(
+    "DASHSCOPE_BASE_URL",
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+)
 
-# Deliberate model routing: stronger models where reasoning matters most,
-# lighter models for cheaper steps — cost-aware given a limited token budget.
+# Deliberate model routing over the hackathon's Qwen Cloud catalog: the strongest
+# reasoner where adjudication matters, balanced models for advocacy, and the fast
+# tier for intake — cost-aware token spend per role.
 MODELS: dict[str, str] = {
-    "intake": "qwen-turbo",
-    "advocate": "qwen-plus",
-    "mediator": "qwen-max",
-    "referee": "qwen-max",
+    "intake": os.environ.get("ARBITER_MODEL_INTAKE", "qwen3.6-flash"),
+    "advocate": os.environ.get("ARBITER_MODEL_ADVOCATE", "qwen3.7-plus"),
+    "mediator": os.environ.get("ARBITER_MODEL_MEDIATOR", "qwen3.7-max"),
+    "referee": os.environ.get("ARBITER_MODEL_REFEREE", "qwen3.7-max"),
 }
 
 

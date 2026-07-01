@@ -21,7 +21,9 @@ _SYSTEM = (
     '"Name2": {"Asset A": 40, "Asset B": 60}}, "cashPool": 0}. '
     "Include 2-6 parties and at least one asset. Each valuation is 0-100 = how "
     "much that party values that asset; infer sensible numbers from the text. "
-    "cashPool is any shared money to split (0 if none)."
+    "cashPool is shared money to split, expressed in THOUSANDS (e.g. $80,000 "
+    "savings -> 80); use 0 if none. Money that goes into cashPool must NOT also "
+    "appear as an asset in items."
 )
 
 
@@ -63,6 +65,11 @@ def structure_dispute(text: str, generate: GenerateFn) -> dict[str, Any]:
         cash_pool = float(data.get("cashPool", 0) or 0)
     except (TypeError, ValueError):
         cash_pool = 0.0
+    # Deterministic guard: if the model returned raw dollars instead of
+    # thousands ($80,000 instead of 80), bring it back onto the $k scale that
+    # the 0-100 valuations use. One division only — $2,000k stays $2,000k.
+    if cash_pool > 1000:
+        cash_pool = cash_pool / 1000
 
     return {
         "title": "Described dispute",

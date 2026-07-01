@@ -37,6 +37,24 @@ def test_structure_dispute_defaults_missing_valuations_to_50():
     assert payload["valuations"]["p1"]["item_0"] == 50.0  # B's missing value
 
 
+def test_structure_dispute_normalizes_raw_dollar_cash_to_thousands():
+    dollars = (
+        '{"parties":["A","B"],"items":["X"],'
+        '"valuations":{"A":{"X":70},"B":{"X":40}},"cashPool":80000}'
+    )
+    payload = structure_dispute("...", lambda s, u, m: dollars)
+    assert payload["cashPool"] == 80.0  # $80,000 -> 80 (in $k)
+
+
+def test_structure_dispute_keeps_thousands_scale_cash_as_is():
+    thousands = (
+        '{"parties":["A","B"],"items":["X"],'
+        '"valuations":{"A":{"X":70},"B":{"X":40}},"cashPool":80}'
+    )
+    payload = structure_dispute("...", lambda s, u, m: thousands)
+    assert payload["cashPool"] == 80.0
+
+
 def test_structure_dispute_raises_on_non_json():
     with pytest.raises(ValueError):
         structure_dispute("...", lambda s, u, m: "sorry, I can't help")

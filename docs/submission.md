@@ -1,7 +1,13 @@
 # Submission kit — Devpost draft, video script, checklist
 
-Working draft for the Global AI Hackathon Series with Qwen Cloud (deadline
-**2026-07-08**). Copy-paste and adapt at submission time.
+Working draft for the Global AI Hackathon Series with Qwen Cloud. Official final
+submission: **July 9, 2026, 2 PM PT** (per the hackathon PDF) — we target
+**July 8** to leave margin. Video length: **1–3 minutes max**.
+
+Live-verified setup: pay-as-you-go DashScope endpoint
+(`dashscope-intl.aliyuncs.com/compatible-mode/v1`) with the hackathon catalog —
+`qwen3.7-max` (mediator/referee), `qwen3.7-plus` (advocates), `qwen3.6-flash`
+(intake). Free tier: 70M+ tokens.
 
 ---
 

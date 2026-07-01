@@ -47,7 +47,9 @@ export async function streamNegotiation(
   const res = await fetch(`${API_BASE}/negotiate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dispute, delay: 1.2, live }),
+    // Live Qwen generation has its own latency, so it needs less artificial
+    // pacing than the instant deterministic narrator.
+    body: JSON.stringify({ dispute, delay: live ? 0.4 : 1.2, live }),
     signal,
   });
   if (res.status === 422) {

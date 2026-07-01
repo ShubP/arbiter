@@ -102,8 +102,9 @@ def main() -> None:
     ]
 
     results = run_benchmark(build_strategies(), disputes)
-    print(f"\nBenchmark over {args.num_disputes} disputes "
-          f"({args.num_items} items each)\n")
+    print(
+        f"\nBenchmark over {args.num_disputes} disputes ({args.num_items} items each)\n"
+    )
     print_table(results)
 
     chart_path = RESULTS_DIR / "fairness_benchmark.png"

@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export interface TranscriptEntry {
   id: number;
-  speaker: "intake" | "mediator" | "ava" | "ben";
+  speaker: "intake" | "mediator" | "a" | "b";
   label: string;
   text: string;
   round?: number;
@@ -16,8 +16,8 @@ const SPEAKER_STYLE: Record<
 > = {
   intake: { badge: "bg-ink-line text-parchment/70", name: "text-parchment/60" },
   mediator: { badge: "bg-brass/20 text-brass-bright", name: "text-brass" },
-  ava: { badge: "bg-party-a/20 text-party-a", name: "text-party-a" },
-  ben: { badge: "bg-party-b/20 text-party-b", name: "text-party-b" },
+  a: { badge: "bg-party-a/20 text-party-a", name: "text-party-a" },
+  b: { badge: "bg-party-b/20 text-party-b", name: "text-party-b" },
 };
 
 export function TranscriptFeed({ entries }: { entries: TranscriptEntry[] }) {

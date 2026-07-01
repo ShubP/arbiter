@@ -73,6 +73,17 @@ export interface NegotiationScript {
   events: NegotiationEvent[];
 }
 
+/** A dispute the user submits to the backend (matches the preset payload shape). */
+export interface DisputePayload {
+  id?: string;
+  title?: string;
+  description?: string;
+  parties: { id: string; name: string; role?: string; side?: PartySide }[];
+  items: { id: string; label: string }[];
+  valuations: Record<string, Record<string, number>>;
+  cashPool: number;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Flagship demo: two cofounders restructuring their split.                    */
 /* -------------------------------------------------------------------------- */

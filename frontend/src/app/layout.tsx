@@ -4,6 +4,8 @@ import {
   Libre_Caslon_Display,
   Public_Sans,
 } from "next/font/google";
+import { SiteFooter } from "@/components/SiteFooter";
+import { SiteNav } from "@/components/SiteNav";
 import "./globals.css";
 
 const caslon = Libre_Caslon_Display({
@@ -42,7 +44,11 @@ export default function RootLayout({
       lang="en"
       className={`${caslon.variable} ${publicSans.variable} ${plexMono.variable} h-full`}
     >
-      <body className="min-h-full">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <SiteNav />
+        <div className="flex-1">{children}</div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }

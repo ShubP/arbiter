@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/*
+  Arbiter — "arbitration chamber" identity.
+  Warm parchment documents on a cool ink chamber; brass for seals/certificates;
+  two advocate identities that read without relying on red/green.
+*/
+@theme {
+  --color-ink: #141b2e; /* chamber background */
+  --color-ink-raised: #1c2540; /* raised surfaces / panels */
+  --color-ink-line: #2c3760; /* hairlines on ink */
+  --color-parchment: #ede6d6; /* the table / documents */
+  --color-parchment-dim: #d8cfba; /* muted parchment */
+  --color-brass: #c9a24b; /* seals, certificate, accent */
+  --color-brass-bright: #e4c375;
+
+  --color-party-a: #4fb0a6; /* advocate A — teal */
+  --color-party-a-soft: #a6d8d2;
+  --color-party-b: #e0885a; /* advocate B — amber-coral */
+  --color-party-b-soft: #f0c3a6;
+
+  --color-accord: #5ba773; /* certified-fair / balanced */
+  --color-tension: #c05640; /* envy / imbalance */
+
+  --font-display: var(--font-caslon), Georgia, serif;
+  --font-sans: var(--font-public), system-ui, sans-serif;
+  --font-mono: var(--font-plex), ui-monospace, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-parchment);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Parchment paper texture via layered gradients (no image asset needed). */
+.paper {
+  background-color: var(--color-parchment);
+  background-image:
+    radial-gradient(
+      circle at 20% 15%,
+      rgba(0, 0, 0, 0.035) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 85% 80%,
+      rgba(0, 0, 0, 0.03) 0%,
+      transparent 50%
+    );
+  color: #2a2418;
+}
+
+/* Fine chamber grid, sits behind the stage. */
+.chamber-grid {
+  background-image:
+    linear-gradient(var(--color-ink-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-ink-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 30%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

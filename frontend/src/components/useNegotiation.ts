@@ -39,7 +39,7 @@ export interface NegotiationState {
   allocation: Allocation | null;
   settlement: Extract<NegotiationEvent, { type: "settlement" }> | null;
   activeParty: string | null;
-  run: (dispute: DisputePayload | null) => void;
+  run: (dispute: DisputePayload | null, live?: boolean) => void;
 }
 
 export function useNegotiation(): NegotiationState {
@@ -154,7 +154,7 @@ export function useNegotiation(): NegotiationState {
   }, [applyEvent]);
 
   const run = useCallback(
-    (dispute: DisputePayload | null) => {
+    (dispute: DisputePayload | null, live = false) => {
       const myRun = ++runId.current;
       setPhase("running");
       setSource(null);
@@ -168,11 +168,15 @@ export function useNegotiation(): NegotiationState {
       setParties([]);
       setItems([]);
 
-      streamNegotiation(dispute, (event) => {
-        if (runId.current !== myRun) return;
-        setSource("live");
-        applyEvent(event);
-      }).catch((err: Error) => {
+      streamNegotiation(
+        dispute,
+        (event) => {
+          if (runId.current !== myRun) return;
+          setSource("live");
+          applyEvent(event);
+        },
+        live,
+      ).catch((err: Error) => {
         if (runId.current !== myRun) return;
         // Offline: fall back to the built-in demo only for the default run.
         if (dispute === null) {

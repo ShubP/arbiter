@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchPresets } from "@/lib/api";
+import { fetchCapabilities, fetchPresets } from "@/lib/api";
 import type { DisputePayload } from "@/lib/negotiation";
 
 interface ItemRow {
@@ -28,7 +28,7 @@ const BLANK: FormState = {
 };
 
 interface DisputeBuilderProps {
-  onRun: (dispute: DisputePayload | null) => void;
+  onRun: (dispute: DisputePayload | null, live: boolean) => void;
   running: boolean;
 }
 
@@ -38,11 +38,14 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
   const [presetsError, setPresetsError] = useState(false);
   const [form, setForm] = useState<FormState>(BLANK);
   const [formError, setFormError] = useState<string | null>(null);
+  const [liveAvailable, setLiveAvailable] = useState(false);
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
     fetchPresets()
       .then(setPresets)
       .catch(() => setPresetsError(true));
+    fetchCapabilities().then((c) => setLiveAvailable(c.liveQwen));
   }, []);
 
   const loadPreset = (preset: DisputePayload) => {
@@ -81,7 +84,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
       cashPool: Number(form.cashPool) || 0,
     };
     setFormError(null);
-    onRun(payload);
+    onRun(payload, live);
   };
 
   return (
@@ -136,7 +139,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                 <button
                   type="button"
                   disabled={running}
-                  onClick={() => onRun(preset)}
+                  onClick={() => onRun(preset, live)}
                   className="rounded-full bg-brass px-4 py-1.5 text-sm font-semibold text-ink transition hover:bg-brass-bright disabled:opacity-60"
                 >
                   Convene
@@ -150,7 +153,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           <button
             type="button"
             disabled={running}
-            onClick={() => onRun(null)}
+            onClick={() => onRun(null, live)}
             className="mt-1 text-sm text-parchment/50 underline-offset-4 hover:text-parchment hover:underline disabled:opacity-60"
           >
             Or run the flagship demo →
@@ -273,6 +276,31 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           {formError && <p className="text-sm text-tension">{formError}</p>}
         </div>
       )}
+
+      {/* Live Qwen toggle (applies to whichever dispute you run) */}
+      <label
+        className={`mt-5 flex items-center justify-between gap-3 rounded-xl border border-ink-line bg-ink/40 px-4 py-3 ${
+          liveAvailable ? "cursor-pointer" : "opacity-60"
+        }`}
+      >
+        <div>
+          <p className="text-sm font-medium text-parchment">
+            Voice advocates with live Qwen
+          </p>
+          <p className="text-xs text-parchment/45">
+            {liveAvailable
+              ? "Advocates & mediator speak in Qwen-generated language. Uses your quota."
+              : "Add a DASHSCOPE_API_KEY on the backend to enable."}
+          </p>
+        </div>
+        <input
+          type="checkbox"
+          checked={live && liveAvailable}
+          disabled={!liveAvailable}
+          onChange={(e) => setLive(e.target.checked)}
+          className="h-5 w-5 accent-brass"
+        />
+      </label>
     </div>
   );
 }

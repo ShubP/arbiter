@@ -8,6 +8,17 @@ export async function fetchPresets(): Promise<DisputePayload[]> {
   return res.json();
 }
 
+/** Whether this deployment can voice advocates with live Qwen. */
+export async function fetchCapabilities(): Promise<{ liveQwen: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE}/capabilities`);
+    if (!res.ok) throw new Error();
+    return res.json();
+  } catch {
+    return { liveQwen: false };
+  }
+}
+
 /**
  * Stream a negotiation from the backend, invoking `onEvent` for each event.
  * Pass `dispute = null` to run the default flagship demo. Reads the SSE response
@@ -16,12 +27,13 @@ export async function fetchPresets(): Promise<DisputePayload[]> {
 export async function streamNegotiation(
   dispute: DisputePayload | null,
   onEvent: (event: NegotiationEvent) => void,
+  live = false,
   signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/negotiate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ dispute, delay: 1.2 }),
+    body: JSON.stringify({ dispute, delay: 1.2, live }),
     signal,
   });
   if (res.status === 422) {

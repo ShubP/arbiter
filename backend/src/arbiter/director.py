@@ -38,6 +38,13 @@ def _alloc_payload(allocation: Allocation) -> dict[str, Any]:
     return {"items": dict(allocation.items), "cash": dict(allocation.cash)}
 
 
+def _cash_phrase(amount: float) -> str:
+    """Human wording for a net cash amount (receives / pays a side-payment)."""
+    if amount >= 0:
+        return f"receives ${amount:g}k"
+    return f"pays ${-amount:g}k"
+
+
 def _all_to(dispute: Dispute, party: str, cash_share: float) -> Allocation:
     """A greedy allocation: one party takes every item and most of the cash."""
     other = next(p for p in dispute.parties if p != party)
@@ -149,8 +156,8 @@ def run_negotiation(scenario: Scenario) -> Iterator[dict[str, Any]]:
         "round": 3,
         "partyId": p0,
         "text": (
-            f"{meta[p0].name} accepts a ${settlement.cash[p0]:g}k cash share to "
-            "balance the assets retained."
+            f"{meta[p0].name} {_cash_phrase(settlement.cash[p0])} to balance the "
+            "assets retained."
         ),
     }
 
@@ -168,7 +175,7 @@ def run_negotiation(scenario: Scenario) -> Iterator[dict[str, Any]]:
         held = [labels[i] for i in dispute.items if settlement.items[i] == m.id]
         held_text = ", ".join(held) if held else "no assets"
         rationale[m.id] = (
-            f"{m.name} keeps {held_text}, plus ${settlement.cash[m.id]:g}k. "
+            f"{m.name} keeps {held_text} and {_cash_phrase(settlement.cash[m.id])}. "
             f"Final outcome {utilities[m.id]:g} — identical to the other party, "
             "so neither would trade places."
         )

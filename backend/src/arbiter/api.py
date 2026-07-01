@@ -12,6 +12,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -26,6 +27,9 @@ from .scenarios import (
     scenario_from_payload,
     scenario_to_payload,
 )
+
+# Load DASHSCOPE_API_KEY (and friends) from a local .env when present.
+load_dotenv()
 
 app = FastAPI(
     title="Arbiter API",

@@ -1,0 +1,22 @@
+# One-command local/production run: FastAPI backend + Next.js frontend.
+# On Alibaba Cloud ECS: set DASHSCOPE_API_KEY and NEXT_PUBLIC_API_URL, then
+#   docker compose up -d --build
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped

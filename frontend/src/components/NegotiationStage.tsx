@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { API_BASE } from "@/lib/config";
 import {
   type Allocation,
-  type FairnessReport,
   cofounderScenario,
+  type FairnessReport,
   type Item,
   type NegotiationEvent,
   type Party,
@@ -16,15 +17,17 @@ import { SettlementCertificate } from "./SettlementCertificate";
 import { TranscriptFeed, type TranscriptEntry } from "./TranscriptFeed";
 
 type Phase = "idle" | "running" | "settled";
+type Source = "live" | "demo" | null;
 
+/** Per-type pacing for the local demo fallback (the live stream is server-paced). */
 const DELAY: Record<NegotiationEvent["type"], number> = {
-  session_started: 700,
+  session_started: 500,
   intake: 1300,
   proposal: 2100,
   mediator: 2000,
   concession: 1500,
   fairness_update: 1400,
-  settlement: 600,
+  settlement: 500,
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -36,6 +39,7 @@ function partyName(parties: Party[], id: string) {
 export function NegotiationStage() {
   const { parties, items, events } = cofounderScenario;
   const [phase, setPhase] = useState<Phase>("idle");
+  const [source, setSource] = useState<Source>(null);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [report, setReport] = useState<FairnessReport | null>(null);
   const [allocation, setAllocation] = useState<Allocation | null>(null);
@@ -44,6 +48,8 @@ export function NegotiationStage() {
   >(null);
   const [activeParty, setActiveParty] = useState<string | null>(null);
   const runId = useRef(0);
+  const counter = useRef(0);
+  const esRef = useRef<EventSource | null>(null);
 
   const heldItems = useCallback(
     (partyId: string): Item[] =>
@@ -53,26 +59,18 @@ export function NegotiationStage() {
     [allocation, items],
   );
 
-  const run = useCallback(async () => {
-    const myRun = ++runId.current;
-    setPhase("running");
-    setTranscript([]);
-    setReport(null);
-    setAllocation(null);
-    setSettlement(null);
-    setActiveParty(null);
-    let counter = 0;
-
-    for (const event of events) {
-      if (runId.current !== myRun) return; // superseded by a restart
-      await sleep(DELAY[event.type]);
-      if (runId.current !== myRun) return;
-
+  const applyEvent = useCallback(
+    (event: NegotiationEvent) => {
       switch (event.type) {
         case "intake":
           setTranscript((t) => [
             ...t,
-            { id: counter++, speaker: "intake", label: "Intake", text: event.text },
+            {
+              id: counter.current++,
+              speaker: "intake",
+              label: "Intake",
+              text: event.text,
+            },
           ]);
           break;
         case "proposal":
@@ -82,7 +80,7 @@ export function NegotiationStage() {
           setTranscript((t) => [
             ...t,
             {
-              id: counter++,
+              id: counter.current++,
               speaker: event.partyId as "ava" | "ben",
               label: `${partyName(parties, event.partyId)} · ${event.kind}`,
               text: event.rationale,
@@ -95,7 +93,7 @@ export function NegotiationStage() {
           setTranscript((t) => [
             ...t,
             {
-              id: counter++,
+              id: counter.current++,
               speaker: "mediator",
               label: "Mediator",
               text: event.text,
@@ -108,7 +106,7 @@ export function NegotiationStage() {
           setTranscript((t) => [
             ...t,
             {
-              id: counter++,
+              id: counter.current++,
               speaker: event.partyId as "ava" | "ben",
               label: `${partyName(parties, event.partyId)} concedes`,
               text: event.text,
@@ -127,16 +125,69 @@ export function NegotiationStage() {
           setPhase("settled");
           break;
       }
-    }
-  }, [events, parties]);
+    },
+    [parties],
+  );
 
-  useEffect(() => () => void runId.current++, []); // cancel on unmount
+  const resetState = useCallback(() => {
+    counter.current = 0;
+    setTranscript([]);
+    setReport(null);
+    setAllocation(null);
+    setSettlement(null);
+    setActiveParty(null);
+  }, []);
+
+  const runDemo = useCallback(async () => {
+    const myRun = runId.current;
+    setSource("demo");
+    for (const event of events) {
+      if (runId.current !== myRun) return;
+      await sleep(DELAY[event.type]);
+      if (runId.current !== myRun) return;
+      applyEvent(event);
+    }
+  }, [events, applyEvent]);
+
+  const run = useCallback(() => {
+    const myRun = ++runId.current;
+    esRef.current?.close();
+    setPhase("running");
+    resetState();
+
+    let received = false;
+    try {
+      const es = new EventSource(`${API_BASE}/negotiate`);
+      esRef.current = es;
+      es.onmessage = (e) => {
+        if (runId.current !== myRun) return;
+        received = true;
+        setSource("live");
+        const event = JSON.parse(e.data) as NegotiationEvent;
+        applyEvent(event);
+        if (event.type === "settlement") es.close();
+      };
+      es.onerror = () => {
+        es.close();
+        if (!received && runId.current === myRun) void runDemo();
+      };
+    } catch {
+      void runDemo();
+    }
+  }, [applyEvent, resetState, runDemo]);
+
+  useEffect(
+    () => () => {
+      runId.current++;
+      esRef.current?.close();
+    },
+    [],
+  );
 
   const certified = report?.certifiedFair ?? false;
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      {/* Fairness console + balance + advocates */}
       <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr]">
         <AdvocatePanel
           party={parties[0]}
@@ -168,21 +219,26 @@ export function NegotiationStage() {
         />
       </div>
 
-      {/* Control */}
-      <div className="my-6 flex justify-center">
+      <div className="my-6 flex flex-col items-center gap-2">
         <button
           type="button"
           onClick={run}
           disabled={phase === "running"}
-          className="group relative rounded-full bg-brass px-8 py-3 font-sans text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-brass px-8 py-3 font-sans text-sm font-semibold uppercase tracking-widest text-ink transition hover:bg-brass-bright disabled:cursor-not-allowed disabled:opacity-60"
         >
           {phase === "idle" && "Convene the table"}
           {phase === "running" && "Negotiating…"}
           {phase === "settled" && "Replay negotiation"}
         </button>
+        {source && (
+          <span className="text-[10px] uppercase tracking-widest text-parchment/35">
+            {source === "live"
+              ? "streaming live from backend"
+              : "offline demo · start the backend for the live stream"}
+          </span>
+        )}
       </div>
 
-      {/* Transcript + settlement */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="max-h-[26rem] min-h-[16rem] overflow-hidden rounded-xl border border-ink-line bg-ink-raised/30 p-4">
           <TranscriptFeed entries={transcript} />
@@ -236,9 +292,7 @@ function FairnessConsole({ report }: { report: FairnessReport | null }) {
           <span
             key={label}
             className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${
-              ok
-                ? "bg-accord/20 text-accord"
-                : "bg-ink-line/60 text-parchment/40"
+              ok ? "bg-accord/20 text-accord" : "bg-ink-line/60 text-parchment/40"
             }`}
           >
             {label}

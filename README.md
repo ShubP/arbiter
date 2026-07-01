@@ -44,18 +44,58 @@ and, measurably, a fairer outcome than a single agent dictating a verdict.
 - **Math-adjudicated conflict resolution** → trust comes from proofs, not vibes.
 - **A measurable win** → benchmarked against a single-agent baseline on a suite of disputes.
 
-## Tech
+## Architecture
 
-LangGraph · Qwen (DashScope / Alibaba Cloud) · Model Context Protocol (MCP) · FastAPI (SSE
-streaming) · Next.js + Tailwind + shadcn/ui · SQLite.
+![Architecture](docs/architecture.png)
 
-See [docs/superpowers/specs/2026-06-30-arbiter-design.md](docs/superpowers/specs/2026-06-30-arbiter-design.md)
-for the full design.
+Three tiers: a **Next.js** frontend, a **FastAPI** negotiation service (deployed on
+Alibaba Cloud), and a deterministic **Fairness Engine** exposed both as a library and
+as an **MCP server**. The negotiation runs on **Qwen** via DashScope. Full write-up in
+[docs/architecture.md](docs/architecture.md); design rationale in the
+[spec](docs/superpowers/specs/2026-06-30-arbiter-design.md).
+
+**Tech:** Python · FastAPI (SSE) · Qwen / DashScope (Alibaba Cloud) · Model Context
+Protocol · LangGraph · Next.js 16 + Tailwind v4 + Framer Motion · pytest + ruff.
+
+## Getting started
+
+**Backend** (Python 3.11+):
+
+```bash
+cd backend
+python -m venv .venv && . .venv/Scripts/activate   # Windows; use bin/activate on macOS/Linux
+pip install -e ".[dev]"
+pytest                                              # run the test suite
+uvicorn arbiter.api:app --port 8000                 # start the API (SSE at /negotiate)
+```
+
+**Frontend** (Node 20+):
+
+```bash
+cd frontend
+npm install
+npm run dev                                         # http://localhost:3000
+```
+
+Open the app and click **Convene the table**. With the backend running it streams the
+live negotiation over SSE; without it, a built-in demo plays. Configure the API URL with
+`NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`).
+
+**Extras:**
+
+```bash
+cd backend
+python scripts/benchmark.py            # fairness benchmark table + chart
+python -m arbiter.mcp_server           # run the Fairness Engine as an MCP server (stdio)
+```
 
 ## Status
 
-🚧 Under active development for the hackathon (deadline 2026-07-08). See the spec for the
-phased build plan.
+🚧 Active development for the hackathon (deadline 2026-07-08). **Done:** fairness engine
++ solver + benchmark, MCP server, FastAPI SSE backend with a deterministic negotiation
+director, and the full negotiation-table frontend wired live end-to-end. **Next:** the
+Qwen agent society (advocates/mediator/referee) behind the same event contract, the
+single-agent baseline, and Alibaba Cloud deployment.
 
 ## License
 

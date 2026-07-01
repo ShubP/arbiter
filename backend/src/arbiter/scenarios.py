@@ -134,9 +134,37 @@ FREELANCE_SCENARIO = make_scenario(
     cash_pool=0.0,
 )
 
+BAND_SCENARIO = make_scenario(
+    id="band",
+    title="A band splits up (3 members)",
+    description=(
+        "Three bandmates are going separate ways and must divide the band name, "
+        "the tour van, the recording gear, the back-catalog masters, and $90k in "
+        "royalties — each cares about very different things."
+    ),
+    parties=[
+        ("remy", "Remy", "Singer", "a"),
+        ("sasha", "Sasha", "Drummer", "b"),
+        ("theo", "Theo", "Producer", "c"),
+    ],
+    items=[
+        ("name", "Band name & rights"),
+        ("van", "Tour van"),
+        ("gear", "Recording gear"),
+        ("masters", "Back-catalog masters"),
+    ],
+    valuations={
+        "remy": {"name": 90.0, "van": 20.0, "gear": 30.0, "masters": 60.0},
+        "sasha": {"name": 40.0, "van": 80.0, "gear": 30.0, "masters": 50.0},
+        "theo": {"name": 30.0, "van": 30.0, "gear": 95.0, "masters": 55.0},
+    },
+    cash_pool=90.0,
+)
+
 PRESETS: tuple[Scenario, ...] = (
     COFOUNDER_SCENARIO,
     ESTATE_SCENARIO,
+    BAND_SCENARIO,
     FREELANCE_SCENARIO,
 )
 
@@ -171,18 +199,19 @@ def scenario_from_payload(payload: dict[str, Any]) -> Scenario:
     items_raw = payload.get("items") or []
     valuations_raw = payload.get("valuations") or {}
 
-    if len(parties_raw) != 2:
-        raise InvalidDispute("A dispute needs exactly two parties.")
+    if not 2 <= len(parties_raw) <= 6:
+        raise InvalidDispute("A dispute needs between two and six parties.")
     if len(items_raw) < 1:
         raise InvalidDispute("Add at least one asset to divide.")
 
+    sides = ["a", "b", "c", "d", "e", "f"]
     parties: list[tuple[str, str, str, str]] = []
     for idx, p in enumerate(parties_raw):
         pid = str(p.get("id") or f"party_{idx}")
         name = str(p.get("name") or f"Party {idx + 1}").strip()
         if not name:
             raise InvalidDispute("Every party needs a name.")
-        parties.append((pid, name, str(p.get("role") or ""), "a" if idx == 0 else "b"))
+        parties.append((pid, name, str(p.get("role") or ""), sides[idx]))
 
     items: list[tuple[str, str]] = []
     for idx, it in enumerate(items_raw):

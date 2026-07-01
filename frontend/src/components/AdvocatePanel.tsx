@@ -5,63 +5,54 @@ import type { Item, Party } from "@/lib/negotiation";
 
 interface AdvocatePanelProps {
   party: Party;
+  color: string;
   heldItems: Item[];
   cash: number | undefined;
   utility: number | undefined;
-  align: "left" | "right";
+  align?: "left" | "right";
   active: boolean;
 }
 
-const SIDE = {
-  a: {
-    text: "text-party-a",
-    ring: "ring-party-a/40",
-    dot: "bg-party-a",
-    glow: "shadow-[0_0_40px_-12px_var(--color-party-a)]",
-  },
-  b: {
-    text: "text-party-b",
-    ring: "ring-party-b/40",
-    dot: "bg-party-b",
-    glow: "shadow-[0_0_40px_-12px_var(--color-party-b)]",
-  },
-} as const;
-
 export function AdvocatePanel({
   party,
+  color,
   heldItems,
   cash,
   utility,
-  align,
+  align = "left",
   active,
 }: AdvocatePanelProps) {
-  const s = SIDE[party.side];
+  const right = align === "right";
   return (
     <motion.section
       layout
-      className={`rounded-xl border border-ink-line bg-ink-raised/70 p-5 ring-1 backdrop-blur-sm transition-shadow ${
-        s.ring
-      } ${active ? s.glow : "shadow-none"}`}
+      className="rounded-xl border border-ink-line bg-ink-raised/70 p-5 backdrop-blur-sm transition-shadow"
+      style={{
+        boxShadow: active ? `0 0 40px -12px ${color}` : "none",
+        borderColor: active ? color : undefined,
+      }}
       aria-label={`${party.name}, advocate`}
     >
-      <div
-        className={`flex items-center gap-2 ${
-          align === "right" ? "flex-row-reverse text-right" : ""
-        }`}
-      >
-        <span className={`h-2.5 w-2.5 rounded-full ${s.dot}`} />
-        <div className={align === "right" ? "text-right" : ""}>
-          <p className={`font-display text-lg leading-tight ${s.text}`}>
+      <div className={`flex items-center gap-2 ${right ? "flex-row-reverse" : ""}`}>
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+        <div className={right ? "text-right" : ""}>
+          <p
+            className="font-display text-lg leading-tight"
+            style={{ color }}
+          >
             {party.name}
           </p>
-          <p className="text-xs text-parchment/50">{party.role}</p>
+          {party.role && (
+            <p className="text-xs text-parchment/50">{party.role}</p>
+          )}
         </div>
       </div>
 
       <div
-        className={`mt-4 flex items-baseline gap-2 ${
-          align === "right" ? "justify-end" : ""
-        }`}
+        className={`mt-4 flex items-baseline gap-2 ${right ? "justify-end" : ""}`}
       >
         <span className="font-mono text-3xl font-semibold text-parchment">
           {utility === undefined ? "—" : Math.round(utility)}
@@ -71,7 +62,7 @@ export function AdvocatePanel({
         </span>
       </div>
 
-      <ul className={`mt-4 space-y-1.5 ${align === "right" ? "text-right" : ""}`}>
+      <ul className={`mt-4 space-y-1.5 ${right ? "text-right" : ""}`}>
         {heldItems.length === 0 ? (
           <li className="text-xs italic text-parchment/30">no assets yet</li>
         ) : (
@@ -93,7 +84,7 @@ export function AdvocatePanel({
         <p
           className={`mt-3 font-mono text-sm ${
             cash > 0 ? "text-accord" : "text-tension"
-          } ${align === "right" ? "text-right" : ""}`}
+          } ${right ? "text-right" : ""}`}
         >
           {cash > 0 ? "+" : "−"}${Math.abs(cash)}k cash
         </p>

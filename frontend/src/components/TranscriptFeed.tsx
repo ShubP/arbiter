@@ -4,21 +4,18 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export interface TranscriptEntry {
   id: number;
-  speaker: "intake" | "mediator" | "a" | "b";
+  speaker: "intake" | "mediator" | "party";
   label: string;
   text: string;
   round?: number;
+  color?: string; // for party speakers
 }
 
-const SPEAKER_STYLE: Record<
-  TranscriptEntry["speaker"],
-  { badge: string; name: string }
-> = {
-  intake: { badge: "bg-ink-line text-parchment/70", name: "text-parchment/60" },
-  mediator: { badge: "bg-brass/20 text-brass-bright", name: "text-brass" },
-  a: { badge: "bg-party-a/20 text-party-a", name: "text-party-a" },
-  b: { badge: "bg-party-b/20 text-party-b", name: "text-party-b" },
-};
+const FIXED_STYLE: Record<"intake" | "mediator", { badge: string; name: string }> =
+  {
+    intake: { badge: "bg-ink-line text-parchment/70", name: "text-parchment/60" },
+    mediator: { badge: "bg-brass/20 text-brass-bright", name: "text-brass" },
+  };
 
 export function TranscriptFeed({ entries }: { entries: TranscriptEntry[] }) {
   return (
@@ -34,7 +31,8 @@ export function TranscriptFeed({ entries }: { entries: TranscriptEntry[] }) {
       <ol className="flex-1 space-y-3 overflow-y-auto pr-1">
         <AnimatePresence initial={false}>
           {entries.map((entry) => {
-            const style = SPEAKER_STYLE[entry.speaker];
+            const fixed =
+              entry.speaker === "party" ? null : FIXED_STYLE[entry.speaker];
             return (
               <motion.li
                 key={entry.id}
@@ -46,11 +44,21 @@ export function TranscriptFeed({ entries }: { entries: TranscriptEntry[] }) {
               >
                 <div className="mb-1 flex items-center gap-2">
                   <span
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${style.badge}`}
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                      fixed ? fixed.badge : ""
+                    }`}
+                    style={
+                      fixed
+                        ? undefined
+                        : { backgroundColor: `${entry.color}33`, color: entry.color }
+                    }
                   >
                     {entry.round ? `R${entry.round}` : "—"}
                   </span>
-                  <span className={`text-xs font-semibold ${style.name}`}>
+                  <span
+                    className={`text-xs font-semibold ${fixed ? fixed.name : ""}`}
+                    style={fixed ? undefined : { color: entry.color }}
+                  >
                     {entry.label}
                   </span>
                 </div>

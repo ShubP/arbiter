@@ -3,26 +3,24 @@
 import { useEffect, useState } from "react";
 import { fetchCapabilities, fetchPresets } from "@/lib/api";
 import type { DisputePayload } from "@/lib/negotiation";
+import { partyColor } from "@/lib/palette";
 
 interface ItemRow {
   label: string;
-  a: string;
-  b: string;
+  values: string[]; // one per party
 }
 
 interface FormState {
-  partyA: string;
-  partyB: string;
+  parties: string[];
   items: ItemRow[];
   cashPool: string;
 }
 
 const BLANK: FormState = {
-  partyA: "",
-  partyB: "",
+  parties: ["", ""],
   items: [
-    { label: "", a: "50", b: "50" },
-    { label: "", a: "50", b: "50" },
+    { label: "", values: ["50", "50"] },
+    { label: "", values: ["50", "50"] },
   ],
   cashPool: "0",
 };
@@ -48,21 +46,46 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
     fetchCapabilities().then((c) => setLiveAvailable(c.liveQwen));
   }, []);
 
+  const n = form.parties.length;
+
   const loadPreset = (preset: DisputePayload) => {
-    const [pa, pb] = preset.parties;
     setForm({
-      partyA: pa.name,
-      partyB: pb.name,
+      parties: preset.parties.map((p) => p.name),
       items: preset.items.map((it) => ({
         label: it.label,
-        a: String(preset.valuations[pa.id]?.[it.id] ?? 50),
-        b: String(preset.valuations[pb.id]?.[it.id] ?? 50),
+        values: preset.parties.map((p) =>
+          String(preset.valuations[p.id]?.[it.id] ?? 50),
+        ),
       })),
       cashPool: String(preset.cashPool ?? 0),
     });
     setFormError(null);
     setTab("custom");
   };
+
+  const addParty = () => {
+    if (n >= 6) return;
+    setForm({
+      ...form,
+      parties: [...form.parties, ""],
+      items: form.items.map((it) => ({ ...it, values: [...it.values, "50"] })),
+    });
+  };
+
+  const removeParty = (idx: number) => {
+    if (n <= 2) return;
+    setForm({
+      ...form,
+      parties: form.parties.filter((_, i) => i !== idx),
+      items: form.items.map((it) => ({
+        ...it,
+        values: it.values.filter((_, i) => i !== idx),
+      })),
+    });
+  };
+
+  const setItem = (idx: number, next: ItemRow) =>
+    setForm({ ...form, items: form.items.map((it, i) => (i === idx ? next : it)) });
 
   const submit = () => {
     const items = form.items.filter((it) => it.label.trim());
@@ -72,24 +95,29 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
     }
     const payload: DisputePayload = {
       title: "Custom dispute",
-      parties: [
-        { id: "a", name: form.partyA.trim() || "Party A", side: "a" },
-        { id: "b", name: form.partyB.trim() || "Party B", side: "b" },
-      ],
-      items: items.map((it, i) => ({ id: `item_${i}`, label: it.label.trim() })),
-      valuations: {
-        a: Object.fromEntries(items.map((it, i) => [`item_${i}`, Number(it.a) || 0])),
-        b: Object.fromEntries(items.map((it, i) => [`item_${i}`, Number(it.b) || 0])),
-      },
+      parties: form.parties.map((name, i) => ({
+        id: `p${i}`,
+        name: name.trim() || `Party ${i + 1}`,
+      })),
+      items: items.map((it, j) => ({ id: `item_${j}`, label: it.label.trim() })),
+      valuations: Object.fromEntries(
+        form.parties.map((_, i) => [
+          `p${i}`,
+          Object.fromEntries(
+            items.map((it, j) => [`item_${j}`, Number(it.values[i]) || 0]),
+          ),
+        ]),
+      ),
       cashPool: Number(form.cashPool) || 0,
     };
     setFormError(null);
     onRun(payload, live);
   };
 
+  const gridCols = `minmax(0,1fr) repeat(${n}, 4rem) 1.75rem`;
+
   return (
     <div className="rounded-2xl border border-ink-line bg-ink-raised/30 p-5 sm:p-6">
-      {/* Tabs */}
       <div className="mb-5 flex gap-1 rounded-full border border-ink-line bg-ink/50 p-1 text-sm">
         {(["presets", "custom"] as const).map((t) => (
           <button
@@ -97,9 +125,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
             type="button"
             onClick={() => setTab(t)}
             className={`flex-1 rounded-full px-4 py-1.5 font-medium transition ${
-              tab === t
-                ? "bg-brass text-ink"
-                : "text-parchment/60 hover:text-parchment"
+              tab === t ? "bg-brass text-ink" : "text-parchment/60 hover:text-parchment"
             }`}
           >
             {t === "presets" ? "Pick a preset" : "Build your own"}
@@ -121,9 +147,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
               className="flex flex-col gap-3 rounded-xl border border-ink-line bg-ink/40 p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <p className="font-display text-lg text-parchment">
-                  {preset.title}
-                </p>
+                <p className="font-display text-lg text-parchment">{preset.title}</p>
                 <p className="mt-0.5 line-clamp-2 text-sm text-parchment/55">
                   {preset.description}
                 </p>
@@ -161,73 +185,110 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
         </div>
       ) : (
         <div className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="First party">
-              <input
-                value={form.partyA}
-                onChange={(e) => setForm({ ...form, partyA: e.target.value })}
-                placeholder="e.g. Ava"
-                className="w-full rounded-lg border border-ink-line bg-ink/50 px-3 py-2 text-sm text-parchment placeholder:text-parchment/30 focus:border-party-a/60 focus:outline-none"
-              />
-            </Field>
-            <Field label="Second party">
-              <input
-                value={form.partyB}
-                onChange={(e) => setForm({ ...form, partyB: e.target.value })}
-                placeholder="e.g. Ben"
-                className="w-full rounded-lg border border-ink-line bg-ink/50 px-3 py-2 text-sm text-parchment placeholder:text-parchment/30 focus:border-party-b/60 focus:outline-none"
-              />
-            </Field>
+          {/* Parties */}
+          <div>
+            <p className="mb-2 text-xs uppercase tracking-wide text-parchment/45">
+              Parties ({n})
+            </p>
+            <div className="space-y-2">
+              {form.parties.map((name, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: partyColor(i) }}
+                  />
+                  <input
+                    value={name}
+                    onChange={(e) => {
+                      const parties = [...form.parties];
+                      parties[i] = e.target.value;
+                      setForm({ ...form, parties });
+                    }}
+                    placeholder={`Party ${i + 1}`}
+                    className="flex-1 rounded-lg border border-ink-line bg-ink/50 px-3 py-2 text-sm text-parchment placeholder:text-parchment/30 focus:outline-none"
+                    style={{ borderColor: undefined }}
+                  />
+                  {n > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeParty(i)}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-parchment/40 transition hover:bg-tension/15 hover:text-tension"
+                      aria-label="Remove party"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {n < 6 && (
+              <button
+                type="button"
+                onClick={addParty}
+                className="mt-2 text-sm text-brass hover:text-brass-bright"
+              >
+                + Add party
+              </button>
+            )}
           </div>
 
+          {/* Valuation grid */}
           <div>
-            <div className="mb-2 grid grid-cols-[1fr_5rem_5rem_2rem] gap-2 px-1 text-[11px] uppercase tracking-wide text-parchment/40">
+            <p className="mb-2 text-xs uppercase tracking-wide text-parchment/45">
+              What each asset is worth to each party ($k)
+            </p>
+            <div
+              className="mb-1 grid gap-2 px-1 text-[10px] uppercase tracking-wide text-parchment/40"
+              style={{ gridTemplateColumns: gridCols }}
+            >
               <span>Asset</span>
-              <span className="text-party-a">Worth to A</span>
-              <span className="text-party-b">Worth to B</span>
+              {form.parties.map((name, i) => (
+                <span
+                  key={i}
+                  className="truncate text-center"
+                  style={{ color: partyColor(i) }}
+                >
+                  {name.trim() || `P${i + 1}`}
+                </span>
+              ))}
               <span />
             </div>
             <div className="space-y-2">
-              {form.items.map((item, i) => (
+              {form.items.map((item, idx) => (
                 <div
-                  key={i}
-                  className="grid grid-cols-[1fr_5rem_5rem_2rem] items-center gap-2"
+                  key={idx}
+                  className="grid items-center gap-2"
+                  style={{ gridTemplateColumns: gridCols }}
                 >
                   <input
                     value={item.label}
-                    onChange={(e) => {
-                      const items = [...form.items];
-                      items[i] = { ...item, label: e.target.value };
-                      setForm({ ...form, items });
-                    }}
-                    placeholder={`Asset ${i + 1}`}
+                    onChange={(e) => setItem(idx, { ...item, label: e.target.value })}
+                    placeholder={`Asset ${idx + 1}`}
                     className="rounded-lg border border-ink-line bg-ink/50 px-3 py-2 text-sm text-parchment placeholder:text-parchment/30 focus:border-brass/60 focus:outline-none"
                   />
-                  <NumberInput
-                    value={item.a}
-                    onChange={(v) => {
-                      const items = [...form.items];
-                      items[i] = { ...item, a: v };
-                      setForm({ ...form, items });
-                    }}
-                  />
-                  <NumberInput
-                    value={item.b}
-                    onChange={(v) => {
-                      const items = [...form.items];
-                      items[i] = { ...item, b: v };
-                      setForm({ ...form, items });
-                    }}
-                  />
+                  {form.parties.map((_, pi) => (
+                    <input
+                      key={pi}
+                      type="number"
+                      min={0}
+                      value={item.values[pi]}
+                      onChange={(e) => {
+                        const values = [...item.values];
+                        values[pi] = e.target.value;
+                        setItem(idx, { ...item, values });
+                      }}
+                      className="w-full rounded-lg border border-ink-line bg-ink/50 px-2 py-2 text-center font-mono text-sm text-parchment focus:border-brass/60 focus:outline-none"
+                    />
+                  ))}
                   <button
                     type="button"
                     onClick={() =>
                       setForm({
                         ...form,
-                        items: form.items.filter((_, j) => j !== i),
+                        items: form.items.filter((_, i) => i !== idx),
                       })
                     }
-                    className="grid h-8 w-8 place-items-center rounded-lg text-parchment/40 transition hover:bg-tension/15 hover:text-tension"
+                    className="grid h-8 w-7 place-items-center rounded-lg text-parchment/40 transition hover:bg-tension/15 hover:text-tension"
                     aria-label="Remove asset"
                   >
                     ×
@@ -240,7 +301,10 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
               onClick={() =>
                 setForm({
                   ...form,
-                  items: [...form.items, { label: "", a: "50", b: "50" }],
+                  items: [
+                    ...form.items,
+                    { label: "", values: form.parties.map(() => "50") },
+                  ],
                 })
               }
               className="mt-2 text-sm text-brass hover:text-brass-bright"
@@ -250,13 +314,18 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           </div>
 
           <div className="flex items-end justify-between gap-4">
-            <Field label="Shared cash to divide ($k, optional)">
-              <NumberInput
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-wide text-parchment/45">
+                Shared cash ($k, optional)
+              </span>
+              <input
+                type="number"
+                min={0}
                 value={form.cashPool}
-                onChange={(v) => setForm({ ...form, cashPool: v })}
-                wide
+                onChange={(e) => setForm({ ...form, cashPool: e.target.value })}
+                className="w-28 rounded-lg border border-ink-line bg-ink/50 px-3 py-2 font-mono text-sm text-parchment focus:border-brass/60 focus:outline-none"
               />
-            </Field>
+            </label>
             <button
               type="button"
               disabled={running}
@@ -268,16 +337,15 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
           </div>
 
           <p className="text-xs leading-relaxed text-parchment/40">
-            Enter what each asset is worth to each side (in $ thousands). Different
-            values are the whole point — they&rsquo;re why the two sides disagree,
-            and what the advocates negotiate over.
+            Different values are the whole point — they&rsquo;re why the parties
+            disagree, and what the advocates negotiate over.
           </p>
 
           {formError && <p className="text-sm text-tension">{formError}</p>}
         </div>
       )}
 
-      {/* Live Qwen toggle (applies to whichever dispute you run) */}
+      {/* Live Qwen toggle */}
       <label
         className={`mt-5 flex items-center justify-between gap-3 rounded-xl border border-ink-line bg-ink/40 px-4 py-3 ${
           liveAvailable ? "cursor-pointer" : "opacity-60"
@@ -302,44 +370,5 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
         />
       </label>
     </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs uppercase tracking-wide text-parchment/45">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function NumberInput({
-  value,
-  onChange,
-  wide,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  wide?: boolean;
-}) {
-  return (
-    <input
-      type="number"
-      min={0}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`rounded-lg border border-ink-line bg-ink/50 px-3 py-2 font-mono text-sm text-parchment focus:border-brass/60 focus:outline-none ${
-        wide ? "w-28" : "w-full"
-      }`}
-    />
   );
 }

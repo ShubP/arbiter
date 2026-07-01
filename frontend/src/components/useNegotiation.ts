@@ -11,6 +11,7 @@ import {
   type NegotiationEvent,
   type Party,
 } from "@/lib/negotiation";
+import { partyColor } from "@/lib/palette";
 import type { TranscriptEntry } from "./TranscriptFeed";
 
 export type Phase = "idle" | "running" | "settled" | "error";
@@ -59,13 +60,7 @@ export function useNegotiation(): NegotiationState {
   const runId = useRef(0);
   const counter = useRef(0);
   const partyName = useRef<Record<string, string>>({});
-  const partySide = useRef<Record<string, "a" | "b">>({});
-
-  const sideSpeaker = useCallback(
-    (partyId: string): TranscriptEntry["speaker"] =>
-      partySide.current[partyId] ?? "a",
-    [],
-  );
+  const partyColorMap = useRef<Record<string, string>>({});
 
   const applyEvent = useCallback(
     (event: NegotiationEvent) => {
@@ -76,8 +71,8 @@ export function useNegotiation(): NegotiationState {
         partyName.current = Object.fromEntries(
           event.parties.map((p) => [p.id, p.name]),
         );
-        partySide.current = Object.fromEntries(
-          event.parties.map((p) => [p.id, p.side]),
+        partyColorMap.current = Object.fromEntries(
+          event.parties.map((p, i) => [p.id, partyColor(i)]),
         );
         break;
       case "intake":
@@ -94,7 +89,8 @@ export function useNegotiation(): NegotiationState {
           ...t,
           {
             id: counter.current++,
-            speaker: sideSpeaker(event.partyId),
+            speaker: "party",
+            color: partyColorMap.current[event.partyId],
             label: `${partyName.current[event.partyId] ?? event.partyId} · ${event.kind}`,
             text: event.rationale,
             round: event.round,
@@ -120,7 +116,8 @@ export function useNegotiation(): NegotiationState {
           ...t,
           {
             id: counter.current++,
-            speaker: sideSpeaker(event.partyId),
+            speaker: "party",
+            color: partyColorMap.current[event.partyId],
             label: `${partyName.current[event.partyId] ?? event.partyId} concedes`,
             text: event.text,
             round: event.round,
@@ -139,7 +136,7 @@ export function useNegotiation(): NegotiationState {
         break;
     }
     },
-    [sideSpeaker],
+    [],
   );
 
   const runDemo = useCallback(async () => {

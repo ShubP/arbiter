@@ -35,6 +35,7 @@ export interface NegotiationState {
   error: string | null;
   parties: Party[];
   items: Item[];
+  constraints: Record<string, string>;
   transcript: TranscriptEntry[];
   report: FairnessReport | null;
   allocation: Allocation | null;
@@ -49,6 +50,7 @@ export function useNegotiation(): NegotiationState {
   const [error, setError] = useState<string | null>(null);
   const [parties, setParties] = useState<Party[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [constraints, setConstraints] = useState<Record<string, string>>({});
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [report, setReport] = useState<FairnessReport | null>(null);
   const [allocation, setAllocation] = useState<Allocation | null>(null);
@@ -68,6 +70,7 @@ export function useNegotiation(): NegotiationState {
       case "session_started":
         setParties(event.parties);
         setItems(event.items);
+        setConstraints(event.constraints ?? {});
         partyName.current = Object.fromEntries(
           event.parties.map((p) => [p.id, p.name]),
         );
@@ -164,6 +167,7 @@ export function useNegotiation(): NegotiationState {
       setActiveParty(null);
       setParties([]);
       setItems([]);
+      setConstraints({});
 
       streamNegotiation(
         dispute,
@@ -199,6 +203,7 @@ export function useNegotiation(): NegotiationState {
     error,
     parties,
     items,
+    constraints,
     transcript,
     report,
     allocation,

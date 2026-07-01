@@ -7,7 +7,7 @@ The same structure powers both the built-in presets and a user's custom dispute.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .domain import Dispute
@@ -29,6 +29,8 @@ class Scenario:
     item_labels: dict[str, str]
     id: str = ""
     title: str = ""
+    # item id -> party id that must receive it (human red-lines).
+    constraints: dict[str, str] = field(default_factory=dict)
 
 
 def make_scenario(
@@ -40,6 +42,7 @@ def make_scenario(
     items: list[tuple[str, str]],  # (id, label)
     valuations: dict[str, dict[str, float]],
     cash_pool: float = 0.0,
+    constraints: dict[str, str] | None = None,
 ) -> Scenario:
     """Construct a Scenario from plain tuples (used by presets and the builder)."""
     party_ids = tuple(p[0] for p in parties)
@@ -56,6 +59,7 @@ def make_scenario(
         item_labels={i[0]: i[1] for i in items},
         id=id,
         title=title,
+        constraints=dict(constraints or {}),
     )
 
 
@@ -186,6 +190,7 @@ def scenario_to_payload(scenario: Scenario) -> dict[str, Any]:
         "items": [{"id": i, "label": scenario.item_labels[i]} for i in d.items],
         "valuations": {p: dict(d.valuations[p]) for p in d.parties},
         "cashPool": d.cash_pool,
+        "constraints": dict(scenario.constraints),
     }
 
 
@@ -243,6 +248,15 @@ def scenario_from_payload(payload: dict[str, Any]) -> Scenario:
     if cash_pool < 0:
         raise InvalidDispute("Cash pool cannot be negative.")
 
+    # Optional human red-lines: {item id -> party id}. Invalid ids are ignored.
+    item_ids = {iid for iid, _ in items}
+    party_ids = {pid for pid, _, _, _ in parties}
+    constraints = {
+        str(iid): str(pid)
+        for iid, pid in (payload.get("constraints") or {}).items()
+        if str(iid) in item_ids and str(pid) in party_ids
+    }
+
     return make_scenario(
         id=str(payload.get("id") or "custom"),
         title=str(payload.get("title") or "Custom dispute"),
@@ -251,4 +265,5 @@ def scenario_from_payload(payload: dict[str, Any]) -> Scenario:
         items=items,
         valuations=valuations,
         cash_pool=cash_pool,
+        constraints=constraints,
     )

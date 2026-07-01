@@ -8,6 +8,7 @@ import { partyColor } from "@/lib/palette";
 interface ItemRow {
   label: string;
   values: string[]; // one per party
+  lockedTo: number | null; // party index that must keep it, or null
 }
 
 interface FormState {
@@ -19,8 +20,8 @@ interface FormState {
 const BLANK: FormState = {
   parties: ["", ""],
   items: [
-    { label: "", values: ["50", "50"] },
-    { label: "", values: ["50", "50"] },
+    { label: "", values: ["50", "50"], lockedTo: null },
+    { label: "", values: ["50", "50"], lockedTo: null },
   ],
   cashPool: "0",
 };
@@ -51,12 +52,19 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
   const loadPreset = (preset: DisputePayload) => {
     setForm({
       parties: preset.parties.map((p) => p.name),
-      items: preset.items.map((it) => ({
-        label: it.label,
-        values: preset.parties.map((p) =>
-          String(preset.valuations[p.id]?.[it.id] ?? 50),
-        ),
-      })),
+      items: preset.items.map((it) => {
+        const lockedPid = preset.constraints?.[it.id];
+        const lockedIdx = lockedPid
+          ? preset.parties.findIndex((p) => p.id === lockedPid)
+          : -1;
+        return {
+          label: it.label,
+          values: preset.parties.map((p) =>
+            String(preset.valuations[p.id]?.[it.id] ?? 50),
+          ),
+          lockedTo: lockedIdx >= 0 ? lockedIdx : null,
+        };
+      }),
       cashPool: String(preset.cashPool ?? 0),
     });
     setFormError(null);
@@ -80,6 +88,12 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
       items: form.items.map((it) => ({
         ...it,
         values: it.values.filter((_, i) => i !== idx),
+        lockedTo:
+          it.lockedTo === idx
+            ? null
+            : it.lockedTo !== null && it.lockedTo > idx
+              ? it.lockedTo - 1
+              : it.lockedTo,
       })),
     });
   };
@@ -93,6 +107,10 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
       setFormError("Add at least one asset with a name.");
       return;
     }
+    const constraints: Record<string, string> = {};
+    items.forEach((it, j) => {
+      if (it.lockedTo !== null) constraints[`item_${j}`] = `p${it.lockedTo}`;
+    });
     const payload: DisputePayload = {
       title: "Custom dispute",
       parties: form.parties.map((name, i) => ({
@@ -109,12 +127,14 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
         ]),
       ),
       cashPool: Number(form.cashPool) || 0,
+      constraints,
     };
     setFormError(null);
     onRun(payload, live);
   };
 
-  const gridCols = `minmax(0,1fr) repeat(${n}, 4rem) 1.75rem`;
+  const gridCols = `minmax(6rem,1fr) repeat(${n}, 3.2rem) 4.4rem 1.5rem`;
+  const gridMinWidth = `${9 + n * 3.2 + 4.4 + 1.5}rem`;
 
   return (
     <div className="rounded-2xl border border-ink-line bg-ink-raised/30 p-5 sm:p-6">
@@ -237,9 +257,10 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
             <p className="mb-2 text-xs uppercase tracking-wide text-parchment/45">
               What each asset is worth to each party ($k)
             </p>
+            <div className="overflow-x-auto">
             <div
               className="mb-1 grid gap-2 px-1 text-[10px] uppercase tracking-wide text-parchment/40"
-              style={{ gridTemplateColumns: gridCols }}
+              style={{ gridTemplateColumns: gridCols, minWidth: gridMinWidth }}
             >
               <span>Asset</span>
               {form.parties.map((name, i) => (
@@ -251,6 +272,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                   {name.trim() || `P${i + 1}`}
                 </span>
               ))}
+              <span className="text-center">Keep</span>
               <span />
             </div>
             <div className="space-y-2">
@@ -258,7 +280,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                 <div
                   key={idx}
                   className="grid items-center gap-2"
-                  style={{ gridTemplateColumns: gridCols }}
+                  style={{ gridTemplateColumns: gridCols, minWidth: gridMinWidth }}
                 >
                   <input
                     value={item.label}
@@ -280,6 +302,25 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                       className="w-full rounded-lg border border-ink-line bg-ink/50 px-2 py-2 text-center font-mono text-sm text-parchment focus:border-brass/60 focus:outline-none"
                     />
                   ))}
+                  <select
+                    value={item.lockedTo ?? ""}
+                    onChange={(e) =>
+                      setItem(idx, {
+                        ...item,
+                        lockedTo:
+                          e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                    title="Must this asset go to a specific party?"
+                    className="rounded-lg border border-ink-line bg-ink/50 px-1 py-2 text-xs text-parchment focus:border-brass/60 focus:outline-none"
+                  >
+                    <option value="">—</option>
+                    {form.parties.map((name, pi) => (
+                      <option key={pi} value={pi}>
+                        {name.trim() || `P${pi + 1}`}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     onClick={() =>
@@ -296,6 +337,7 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                 </div>
               ))}
             </div>
+            </div>
             <button
               type="button"
               onClick={() =>
@@ -303,7 +345,11 @@ export function DisputeBuilder({ onRun, running }: DisputeBuilderProps) {
                   ...form,
                   items: [
                     ...form.items,
-                    { label: "", values: form.parties.map(() => "50") },
+                    {
+                      label: "",
+                      values: form.parties.map(() => "50"),
+                      lockedTo: null,
+                    },
                   ],
                 })
               }

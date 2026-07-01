@@ -70,6 +70,23 @@ def test_solver_net_cash_sums_to_the_cash_pool():
     assert sum(allocation.cash.values()) == 100.0
 
 
+def test_solver_honors_a_constraint_even_against_efficiency():
+    # Both want the car; Alice values it more, but Bob has a red-line to keep it.
+    dispute = Dispute(
+        parties=("alice", "bob"),
+        items=("car",),
+        valuations={"alice": {"car": 100.0}, "bob": {"car": 60.0}},
+        cash_pool=0.0,
+    )
+
+    allocation = solve_fair_division(dispute, {"car": "bob"})
+
+    assert allocation.items["car"] == "bob"
+    # Utilities still equalize: target (60+0)/2 = 30; Bob pays 30, Alice receives 30.
+    assert allocation.cash["bob"] == -30.0
+    assert allocation.cash["alice"] == 30.0
+
+
 def test_solver_is_certified_fair_across_many_random_disputes():
     # The provable guarantee, exercised over a whole distribution of instances.
     for seed in range(200):

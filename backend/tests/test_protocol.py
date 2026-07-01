@@ -86,6 +86,25 @@ def test_three_party_negotiation_terminates_and_is_efficient():
     assert events[-1]["report"]["paretoEfficient"] is True
 
 
+def test_constraint_keeps_an_asset_with_its_required_party():
+    # Alex values the house more, but Bailey has a red-line to keep it.
+    scenario = make_scenario(
+        id="con",
+        title="con",
+        description="",
+        parties=[("a", "Alex", "", "a"), ("b", "Bailey", "", "b")],
+        items=[("house", "House"), ("car", "Car")],
+        valuations={
+            "a": {"house": 100.0, "car": 90.0},
+            "b": {"house": 40.0, "car": 30.0},
+        },
+        constraints={"house": "b"},
+    )
+    settlement = list(run_negotiation(scenario))[-1]
+    assert settlement["allocation"]["items"]["house"] == "b"  # red-line honored
+    assert settlement["allocation"]["items"]["car"] == "a"  # rest stays efficient
+
+
 def test_llm_narrator_voices_moves_without_changing_fairness():
     def fake_generate(system: str, user: str, model: str) -> str:
         return "MOCK"

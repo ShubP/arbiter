@@ -76,3 +76,17 @@ def test_scenario_from_payload_assigns_sides_by_order():
     scenario = scenario_from_payload(_valid_payload())
     assert scenario.parties[0].side == "a"
     assert scenario.parties[1].side == "b"
+
+
+def test_scenario_from_payload_reads_valid_constraints():
+    payload = _valid_payload()
+    payload["constraints"] = {"boat": "a"}
+    scenario = scenario_from_payload(payload)
+    assert scenario.constraints == {"boat": "a"}
+
+
+def test_scenario_from_payload_ignores_unknown_constraint_ids():
+    payload = _valid_payload()
+    payload["constraints"] = {"nonexistent": "a", "boat": "zzz"}
+    scenario = scenario_from_payload(payload)
+    assert scenario.constraints == {}

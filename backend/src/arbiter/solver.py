@@ -20,12 +20,25 @@ from __future__ import annotations
 from .domain import Allocation, Dispute
 
 
-def solve_fair_division(dispute: Dispute) -> Allocation:
-    """Return a fair-target allocation (envy-free + Pareto-efficient for 2 parties)."""
+def solve_fair_division(
+    dispute: Dispute, constraints: dict[str, str] | None = None
+) -> Allocation:
+    """Return a fair-target allocation (envy-free + Pareto-efficient for 2 parties).
+
+    ``constraints`` maps an item id to a party id that *must* receive it (a human
+    red-line). Constrained items are honored even when another party values them
+    more; the remaining items go to their highest valuer and cash still equalizes
+    utilities. Constraints can make the result fall short of envy-free — which the
+    fairness engine then reports honestly.
+    """
+    constraints = constraints or {}
     # 1. Efficiency: each item to its highest valuer (stable tie-break to the
-    #    earliest-listed party).
+    #    earliest-listed party) — unless a constraint pins it to a party.
     items: dict[str, str] = {}
     for item in dispute.items:
+        if item in constraints:
+            items[item] = constraints[item]
+            continue
         winner = max(
             dispute.parties,
             key=lambda p, it=item: dispute.valuations[p][it],

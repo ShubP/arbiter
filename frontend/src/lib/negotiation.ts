@@ -45,6 +45,7 @@ export type NegotiationEvent =
       items: Item[];
       cashPool: number;
       dispute: string;
+      constraints?: Record<string, string>;
     }
   | { type: "intake"; text: string }
   | {
@@ -82,6 +83,7 @@ export interface DisputePayload {
   items: { id: string; label: string }[];
   valuations: Record<string, Record<string, number>>;
   cashPool: number;
+  constraints?: Record<string, string>;
 }
 
 /* -------------------------------------------------------------------------- */

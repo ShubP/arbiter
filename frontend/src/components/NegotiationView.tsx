@@ -20,6 +20,7 @@ export function NegotiationView(state: NegotiationState) {
   const {
     parties,
     items,
+    constraints,
     transcript,
     report,
     allocation,
@@ -33,6 +34,12 @@ export function NegotiationView(state: NegotiationState) {
   const twoParty = shown.length === 2;
   const heldItems = (partyId: string): Item[] =>
     allocation ? items.filter((it) => allocation.items[it.id] === partyId) : [];
+  const lockedFor = (partyId: string): Set<string> =>
+    new Set(
+      Object.entries(constraints)
+        .filter(([, pid]) => pid === partyId)
+        .map(([iid]) => iid),
+    );
 
   const panel = (party: Party, i: number, align?: "left" | "right") => (
     <AdvocatePanel
@@ -40,6 +47,7 @@ export function NegotiationView(state: NegotiationState) {
       party={party}
       color={partyColor(i)}
       heldItems={heldItems(party.id)}
+      lockedItems={lockedFor(party.id)}
       cash={allocation?.cash[party.id]}
       utility={report?.utilities[party.id]}
       align={align}

@@ -7,6 +7,7 @@ interface AdvocatePanelProps {
   party: Party;
   color: string;
   heldItems: Item[];
+  lockedItems?: Set<string>;
   cash: number | undefined;
   utility: number | undefined;
   align?: "left" | "right";
@@ -17,6 +18,7 @@ export function AdvocatePanel({
   party,
   color,
   heldItems,
+  lockedItems,
   cash,
   utility,
   align = "left",
@@ -74,6 +76,11 @@ export function AdvocatePanel({
               animate={{ opacity: 1, y: 0 }}
               className="text-sm text-parchment/80"
             >
+              {lockedItems?.has(item.id) && (
+                <span title="Red-line: kept by this party" className="mr-1">
+                  🔒
+                </span>
+              )}
               {item.label}
             </motion.li>
           ))

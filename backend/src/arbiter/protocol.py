@@ -65,6 +65,7 @@ def run_negotiation(
     dispute = scenario.dispute
     parties = dispute.parties
     items = dispute.items
+    constraints = scenario.constraints  # item id -> party that must keep it
 
     yield {
         "type": "session_started",
@@ -75,6 +76,7 @@ def run_negotiation(
         "items": [{"id": i, "label": scenario.item_labels[i]} for i in items],
         "cashPool": dispute.cash_pool,
         "dispute": scenario.description,
+        "constraints": dict(constraints),
     }
 
     yield {"type": "intake", "text": narrator.intake(scenario)}
@@ -96,9 +98,16 @@ def run_negotiation(
             "rationale": narrator.opening(scenario, party, report),
         }
 
-    # Provisional working allocation: the first party holds everything.
-    held: dict[str, str] = {it: parties[0] for it in items}
-    contested = [it for it in items if _highest_valuer(dispute, it) != parties[0]]
+    # Provisional working allocation: constrained assets sit with their required
+    # owner from the start; everything else provisionally with the first party.
+    held: dict[str, str] = {
+        it: (constraints[it] if it in constraints else parties[0]) for it in items
+    }
+    contested = [
+        it
+        for it in items
+        if it not in constraints and _highest_valuer(dispute, it) != parties[0]
+    ]
     yield {
         "type": "mediator",
         "round": 1,
@@ -112,15 +121,23 @@ def run_negotiation(
     max_steps = len(parties) * len(items) + len(items) + 2
 
     for _ in range(max_steps):
-        if all(held[it] == _highest_valuer(dispute, it) for it in items):
+        if all(
+            held[it] == _highest_valuer(dispute, it)
+            for it in items
+            if it not in constraints
+        ):
             break
 
         # Choose the strongest outstanding demand: the party that most intensely
-        # wants an asset it doesn't hold and hasn't already been denied.
+        # wants an unlocked asset it doesn't hold and hasn't already been denied.
         best: tuple[float, str, str, str] | None = None
         for party in parties:
             wanted = [
-                it for it in items if held[it] != party and (party, it) not in denied
+                it
+                for it in items
+                if held[it] != party
+                and (party, it) not in denied
+                and it not in constraints
             ]
             if not wanted:
                 continue
@@ -163,8 +180,8 @@ def run_negotiation(
             }
         round_no += 1
 
-    # --- Settlement: efficient assignment, equalized with cash. ---------------
-    settlement = solve_fair_division(dispute)
+    # --- Settlement: efficient assignment (honoring red-lines), equalized. -----
+    settlement = solve_fair_division(dispute, constraints)
     yield {
         "type": "mediator",
         "round": round_no,
